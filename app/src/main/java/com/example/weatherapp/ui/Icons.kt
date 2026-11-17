@@ -80,6 +80,25 @@ fun WeatherIcon(kind: IconKind, modifier: Modifier = Modifier) {
                     )
                 }
             }
+            IconKind.STORM -> {
+                drawCloud(w * 0.04f, h * 0.06f, w * 0.92f, h * 0.55f, Color(0xFF8A94A6))
+                val bolt = Path().apply {
+                    moveTo(w * 0.56f, h * 0.55f)
+                    lineTo(w * 0.36f, h * 0.84f)
+                    lineTo(w * 0.50f, h * 0.84f)
+                    lineTo(w * 0.42f, h * 0.98f)
+                    lineTo(w * 0.68f, h * 0.70f)
+                    lineTo(w * 0.54f, h * 0.70f)
+                    close()
+                }
+                drawPath(bolt, Color(0xFFFFD54F))
+            }
+            IconKind.WIND -> {
+                val white = Color(0xFFF4F7FB)
+                drawLine(white, Offset(w * 0.1f, h * 0.35f), Offset(w * 0.72f, h * 0.35f), w * 0.08f, StrokeCap.Round)
+                drawLine(white, Offset(w * 0.1f, h * 0.52f), Offset(w * 0.9f, h * 0.52f), w * 0.08f, StrokeCap.Round)
+                drawLine(white, Offset(w * 0.1f, h * 0.69f), Offset(w * 0.6f, h * 0.69f), w * 0.08f, StrokeCap.Round)
+            }
             IconKind.NIGHT -> drawCircle(Color(0xFFF2EBC0), w * 0.3f, center)
         }
     }

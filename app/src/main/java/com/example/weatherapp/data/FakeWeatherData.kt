@@ -56,7 +56,7 @@ object FakeWeatherData {
     )
     private val rainyRain = listOf(70, 60, null, 55, 65, null, 50, 60, null, 55)
 
-    val cities: List<CityWeather> = listOf(
+    private val baseCities: List<CityWeather> = listOf(
         CityWeather(
             name = "Thành Phố Hồ Chí Minh",
             subtitle = "Vị trí của tôi",
@@ -142,4 +142,68 @@ object FakeWeatherData {
             pressureHpa = 1015,
         ),
     )
+
+    /** Các thành phố demo để xem từng kiểu nền: bình minh, hoàng hôn, đêm, giông bão, gió. */
+    private val extraCities: List<CityWeather> = run {
+        val b = baseCities[0]
+        listOf(
+            b.copy(
+                name = "Hà Nội", subtitle = "05:52", isCurrentLocation = false,
+                sky = SkyKind.DAWN, condition = "Bình minh", temp = 21, high = 27, low = 20,
+                summary = "Trời quang dần khi mặt trời mọc. Gió nhẹ.",
+                hourly = hourly(21, IconKind.PARTLY_CLOUDY),
+                feelsLike = 21, feelsNote = "Cảm nhận giống nhiệt độ thực tế.",
+                uvIndex = 0, uvLabel = "Thấp", uvNote = "Chưa cần chống nắng.",
+                sunrise = "06:05", sunset = "17:12", sunProgress = 0f,
+                windSpeed = 6, windGust = 10, windDirDeg = 45, windDirName = "ĐB",
+                humidity = 84, dewPoint = 18,
+            ),
+            b.copy(
+                name = "Huế", subtitle = "17:20", isCurrentLocation = false,
+                sky = SkyKind.DUSK, condition = "Hoàng hôn", temp = 26, high = 29, low = 24,
+                summary = "Trời quang, chuyển tối dần. Gió nhẹ.",
+                hourly = hourly(26, IconKind.PARTLY_CLOUDY),
+                feelsLike = 27, feelsNote = "Cảm nhận ấm hơn nhiệt độ thực tế.",
+                uvIndex = 0, uvLabel = "Thấp", uvNote = "Chưa cần chống nắng.",
+                sunrise = "05:58", sunset = "17:34", sunProgress = 0.97f,
+                windSpeed = 8, windGust = 13, windDirDeg = 90, windDirName = "Đ",
+                humidity = 78, dewPoint = 22,
+            ),
+            b.copy(
+                name = "Cần Thơ", subtitle = "22:10", isCurrentLocation = false,
+                sky = SkyKind.CLEAR_NIGHT, condition = "Trời quang", temp = 26, high = 31, low = 25,
+                summary = "Trời quang suốt đêm. Gió nhẹ.",
+                hourly = hourly(26, IconKind.NIGHT),
+                feelsLike = 28, feelsNote = "Cảm nhận ấm hơn nhiệt độ thực tế.",
+                uvIndex = 0, uvLabel = "Thấp", uvNote = "Không cần chống nắng.",
+                sunrise = "05:50", sunset = "17:28", sunProgress = 1f,
+                windSpeed = 7, windGust = 11, windDirDeg = 120, windDirName = "ĐNĐ",
+                visibilityKm = 24, visibilityNote = "Tầm nhìn hoàn toàn rõ.",
+                humidity = 80, dewPoint = 22,
+            ),
+            b.copy(
+                name = "Hải Phòng", subtitle = "14:30", isCurrentLocation = false,
+                sky = SkyKind.STORM, condition = "Mưa to, có sấm sét", temp = 24, high = 26, low = 22,
+                summary = "Dông bão kèm sấm sét. Gió giật lên đến 55 km/h.",
+                hourly = hourly(24, IconKind.STORM),
+                feelsLike = 25, feelsNote = "Cảm nhận giống nhiệt độ thực tế.",
+                windSpeed = 32, windGust = 55, windDirDeg = 200, windDirName = "NTN",
+                uvIndex = 1, uvLabel = "Thấp", uvNote = "Không cần che chắn đặc biệt.",
+                rainTodayMm = 48, rainNote = "Dự báo thêm 30 mm vào ngày mai.",
+                visibilityKm = 3, visibilityNote = "Tầm nhìn rất kém do mưa lớn.",
+                humidity = 96, dewPoint = 23, pressureHpa = 1004,
+            ),
+            b.copy(
+                name = "Quy Nhơn", subtitle = "10:03", isCurrentLocation = false,
+                sky = SkyKind.WINDY, condition = "Nhiều gió", temp = 28, high = 30, low = 25,
+                summary = "Gió mạnh cả ngày. Gió giật lên đến 62 km/h.",
+                hourly = hourly(28, IconKind.WIND),
+                feelsLike = 27, feelsNote = "Cảm nhận mát hơn nhiệt độ thực tế do gió.",
+                windSpeed = 38, windGust = 62, windDirDeg = 70, windDirName = "ĐĐB",
+                humidity = 70, dewPoint = 22, pressureHpa = 1010,
+            ),
+        )
+    }
+
+    val cities: List<CityWeather> = baseCities + extraCities
 }

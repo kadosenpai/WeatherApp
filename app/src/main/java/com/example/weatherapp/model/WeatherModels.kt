@@ -1,10 +1,10 @@
 package com.example.weatherapp.model
 
 /** Kiểu bầu trời -> quyết định gradient nền và hiệu ứng. */
-enum class SkyKind { CLEAR_DAY, CLOUDY_DAY, RAIN_DAY, CLEAR_NIGHT, CLOUDY_NIGHT }
+enum class SkyKind { CLEAR_DAY, CLOUDY_DAY, RAIN_DAY, STORM, WINDY, DAWN, DUSK, CLEAR_NIGHT, CLOUDY_NIGHT }
 
 /** Icon thời tiết nhỏ (dùng cho dự báo giờ / ngày). */
-enum class IconKind { SUNNY, PARTLY_CLOUDY, CLOUDY, RAIN, NIGHT }
+enum class IconKind { SUNNY, PARTLY_CLOUDY, CLOUDY, RAIN, STORM, WIND, NIGHT }
 
 data class HourlyForecast(
     val label: String,
