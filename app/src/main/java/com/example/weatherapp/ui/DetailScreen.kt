@@ -1,4 +1,8 @@
 package com.example.weatherapp.ui
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,20 +25,29 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.model.CityWeather
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -53,9 +66,43 @@ fun DetailScreen(cities: List<CityWeather>, startIndex: Int, onOpenList: () -> U
     }
 }
 
+/** Theo dõi tổng số pixel đã cuộn (để làm parallax). */
+private class ScrollTracker : NestedScrollConnection {
+    var y by mutableFloatStateOf(0f)
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        y = (y - consumed.y).coerceAtLeast(0f)
+        return Offset.Zero
+    }
+}
+
+/** Mỗi khối hiện ra bằng hiệu ứng mờ dần + trượt lên (lần lượt, chỉ chạy một lần cho mỗi khối). */
+@Composable
+private fun AnimItem(index: Int, seen: MutableSet<Int>, content: @Composable () -> Unit) {
+    val already = remember { index in seen }
+    val p = remember { Animatable(if (already) 1f else 0f) }
+    LaunchedEffect(Unit) {
+        if (!already) {
+            delay((index * 70L).coerceAtMost(350L))
+            p.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
+        }
+        seen.add(index)
+    }
+    Box(
+        Modifier.graphicsLayer {
+            alpha = p.value
+            translationY = (1f - p.value) * 36.dp.toPx()
+        },
+    ) {
+        content()
+    }
+}
+
 @Composable
 private fun CityPage(city: CityWeather) {
     val listState = rememberLazyListState()
+    val tracker = remember { ScrollTracker() }
+    val seen = remember { mutableSetOf<Int>() }
     val collapsePx = with(LocalDensity.current) { 170.dp.toPx() }
     val progress = remember(collapsePx) {
         derivedStateOf {
@@ -68,8 +115,8 @@ private fun CityPage(city: CityWeather) {
     }
     val topColor = skyColors(city.sky).first()
 
-    Box(Modifier.fillMaxSize()) {
-        SkyBackground(city.sky, Modifier.fillMaxSize())
+    Box(Modifier.fillMaxSize().nestedScroll(tracker)) {
+        SkyBackground(city.sky, Modifier.fillMaxSize(), scroll = { tracker.y })
 
         LazyColumn(
             state = listState,
@@ -77,33 +124,41 @@ private fun CityPage(city: CityWeather) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { Header(city) { progress.value } }
-            item { HourlyCard(city) }
-            item { DailyCard(city) }
+            item { Header(city, { progress.value }, { tracker.y }) }
+            item { AnimItem(1, seen) { HourlyCard(city) } }
+            item { AnimItem(2, seen) { DailyCard(city) } }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AverageCard(city, Modifier.weight(1f).aspectRatio(1f))
-                    FeelsCard(city, Modifier.weight(1f).aspectRatio(1f))
+                AnimItem(3, seen) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AverageCard(city, Modifier.weight(1f).aspectRatio(1f))
+                        FeelsCard(city, Modifier.weight(1f).aspectRatio(1f))
+                    }
                 }
             }
-            item { WindCard(city) }
+            item { AnimItem(4, seen) { WindCard(city) } }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    UvCard(city, Modifier.weight(1f).aspectRatio(1f))
-                    SunsetCard(city, Modifier.weight(1f).aspectRatio(1f))
+                AnimItem(5, seen) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        UvCard(city, Modifier.weight(1f).aspectRatio(1f))
+                        SunsetCard(city, Modifier.weight(1f).aspectRatio(1f))
+                    }
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    RainCard(city, Modifier.weight(1f).aspectRatio(1f))
-                    VisibilityCard(city, Modifier.weight(1f).aspectRatio(1f))
+                AnimItem(6, seen) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RainCard(city, Modifier.weight(1f).aspectRatio(1f))
+                        VisibilityCard(city, Modifier.weight(1f).aspectRatio(1f))
+                    }
                 }
             }
-            item { MoonCard(city) }
+            item { AnimItem(7, seen) { MoonCard(city) } }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    HumidityCard(city, Modifier.weight(1f).aspectRatio(1f))
-                    PressureCard(city, Modifier.weight(1f).aspectRatio(1f))
+                AnimItem(8, seen) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        HumidityCard(city, Modifier.weight(1f).aspectRatio(1f))
+                        PressureCard(city, Modifier.weight(1f).aspectRatio(1f))
+                    }
                 }
             }
             item {
@@ -123,7 +178,7 @@ private fun CityPage(city: CityWeather) {
 
 /** Phần đầu: tên, nhiệt độ lớn, mô tả. Mờ dần và nhỏ lại khi cuộn. */
 @Composable
-private fun Header(city: CityWeather, progress: () -> Float) {
+private fun Header(city: CityWeather, progress: () -> Float, scroll: () -> Float) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -134,6 +189,7 @@ private fun Header(city: CityWeather, progress: () -> Float) {
                 alpha = (1f - p * 1.3f).coerceIn(0f, 1f)
                 scaleX = 1f - p * 0.08f
                 scaleY = 1f - p * 0.08f
+                translationY = scroll().coerceIn(0f, 700f) * 0.4f
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

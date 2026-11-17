@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,8 +27,22 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val CardColor = Color(0x33123A7A)
-val CardShape = RoundedCornerShape(20.dp)
+val CardTint = Color(0x26102A5C)
+val CardShape = RoundedCornerShape(22.dp)
+
+/** Lớp sáng phía trên card: sáng hơn ở trên, mờ dần xuống dưới (giống mặt kính). */
+val CardSheen = Brush.verticalGradient(
+    listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.06f)),
+)
+
+/** Viền sáng chéo như phản chiếu ở mép kính. */
+val CardEdge = Brush.linearGradient(
+    listOf(
+        Color.White.copy(alpha = 0.50f),
+        Color.White.copy(alpha = 0.08f),
+        Color.White.copy(alpha = 0.20f),
+    ),
+)
 val SoftWhite = Color.White.copy(alpha = 0.6f)
 
 /** Text ngắn gọn: (nội dung, cỡ chữ, ...). */
@@ -63,7 +78,7 @@ fun CardTitle(title: String, glyph: Glyph?) {
     }
 }
 
-/** Khung card mờ kiểu Apple Weather (giai đoạn 1: nền bán trong suốt, chưa blur). */
+/** Khung card kiểu kính mờ: nền tối nhẹ + lớp sáng chuyển màu + viền phản chiếu. */
 @Composable
 fun WeatherCard(
     modifier: Modifier = Modifier,
@@ -75,8 +90,9 @@ fun WeatherCard(
     Column(
         modifier
             .clip(CardShape)
-            .background(CardColor)
-            .border(0.5.dp, Color.White.copy(alpha = 0.12f), CardShape)
+            .background(CardTint)
+            .background(CardSheen)
+            .border(0.8.dp, CardEdge, CardShape)
             .padding(padding),
     ) {
         if (title != null) {

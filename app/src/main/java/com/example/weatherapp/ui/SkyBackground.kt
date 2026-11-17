@@ -1,5 +1,8 @@
 package com.example.weatherapp.ui
 
+import android.graphics.RuntimeShader
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -12,6 +15,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -19,6 +26,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -40,54 +49,78 @@ fun skyColors(sky: SkyKind): List<Color> = when (sky) {
     SkyKind.CLOUDY_NIGHT -> listOf(Color(0xFF121830), Color(0xFF212947), Color(0xFF323A5B))
 }
 
-/** Nền bầu trời: gradient + hiệu ứng riêng cho từng kiểu thời tiết (chỉ chạy khi animated = true). */
+/**
+ * Nền bầu trời: gradient + hiệu ứng riêng cho từng kiểu thời tiết (chỉ chạy khi animated = true).
+ * [scroll] trả về số pixel đã cuộn, dùng để làm parallax (nền dịch chậm hơn nội dung).
+ */
 @Composable
-fun SkyBackground(sky: SkyKind, modifier: Modifier = Modifier, animated: Boolean = true) {
+fun SkyBackground(
+    sky: SkyKind,
+    modifier: Modifier = Modifier,
+    animated: Boolean = true,
+    scroll: () -> Float = { 0f },
+) {
     Box(modifier.background(Brush.verticalGradient(skyColors(sky)))) {
         if (animated) {
             when (sky) {
                 SkyKind.CLEAR_DAY -> {
-                    SunLayer()
-                    CloudLayer(Color.White, 0.55f, 120_000)
+                    Parallax(scroll, 0.15f) { SunLayer() }
+                    Clouds(0.38f, Color.White, 0.10f, 1f, 0.55f, 120_000, scroll)
                 }
                 SkyKind.CLOUDY_DAY -> {
-                    SunGlow(0.4f)
-                    CloudLayer(Color.White, 1f, 120_000)
+                    Parallax(scroll, 0.12f) { SunGlow(0.4f) }
+                    Clouds(0.85f, Color.White, 0.20f, 1f, 1f, 120_000, scroll)
                 }
                 SkyKind.RAIN_DAY -> {
-                    CloudLayer(Color(0xFFD0D6DE), 1f, 100_000)
+                    Clouds(0.95f, Color(0xFFD0D6DE), 0.40f, 1.3f, 1f, 100_000, scroll)
                     RainLayer(count = 70, durationMs = 1200, alpha = 0.28f, slant = 0.18f, lenDp = 22f, widthDp = 1.5f)
                 }
                 SkyKind.STORM -> {
-                    CloudLayer(Color(0xFF9AA3B0), 1.3f, 60_000)
+                    Clouds(1f, Color(0xFF8A94A4), 0.55f, 2.2f, 1.3f, 60_000, scroll)
                     RainLayer(count = 190, durationMs = 650, alpha = 0.38f, slant = 0.3f, lenDp = 32f, widthDp = 1.6f)
                     LightningLayer()
                 }
                 SkyKind.WINDY -> {
-                    SunGlow(0.3f)
-                    CloudLayer(Color.White, 1.2f, 30_000)
+                    Parallax(scroll, 0.12f) { SunGlow(0.3f) }
+                    Clouds(0.6f, Color.White, 0.15f, 5f, 1.2f, 30_000, scroll)
                     WindLayer()
                 }
                 SkyKind.DAWN -> {
-                    HorizonGlow(Color(0xFFFFB27A))
-                    CloudLayer(Color(0xFFFFD0B8), 0.9f, 140_000)
+                    Parallax(scroll, 0.2f) { HorizonGlow(Color(0xFFFFB27A)) }
+                    Clouds(0.55f, Color(0xFFFFD0B8), 0.20f, 1f, 0.9f, 140_000, scroll)
                 }
                 SkyKind.DUSK -> {
-                    HorizonGlow(Color(0xFFFF8A4C))
-                    CloudLayer(Color(0xFFFFB48F), 0.9f, 140_000)
+                    Parallax(scroll, 0.2f) { HorizonGlow(Color(0xFFFF8A4C)) }
+                    Clouds(0.55f, Color(0xFFFFB48F), 0.25f, 1f, 0.9f, 140_000, scroll)
                 }
                 SkyKind.CLEAR_NIGHT -> {
-                    StarLayer(90)
-                    MoonLayer()
-                    CloudLayer(Color(0xFFAEB8E8), 0.35f, 150_000)
+                    Parallax(scroll, 0.10f) {
+                        StarLayer(90)
+                        MoonLayer()
+                    }
+                    Clouds(0.28f, Color(0xFF8C98D8), 0.55f, 1f, 0.35f, 150_000, scroll)
                 }
                 SkyKind.CLOUDY_NIGHT -> {
-                    StarLayer(30)
-                    MoonLayer()
-                    CloudLayer(Color(0xFF9AA4D0), 0.9f, 120_000)
+                    Parallax(scroll, 0.10f) {
+                        StarLayer(30)
+                        MoonLayer()
+                    }
+                    Clouds(0.75f, Color(0xFF8590C8), 0.55f, 1f, 0.9f, 120_000, scroll)
                 }
             }
         }
+    }
+}
+
+/** Lớp đứng xa hơn: dịch lên chậm hơn nội dung khi cuộn. */
+@Composable
+private fun Parallax(scroll: () -> Float, factor: Float, content: @Composable () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer { translationY = -scroll() * factor },
+    ) {
+        content()
     }
 }
 
@@ -155,7 +188,129 @@ private fun SunLayer() {
     }
 }
 
-// ------------------------------------------------------------------ mây
+// ------------------------------------------------------------------ mây bằng shader (AGSL, Android 13+)
+
+private const val CLOUD_AGSL = """
+uniform float2 iResolution;
+uniform float iTime;
+uniform float iScroll;
+uniform float3 iTint;
+uniform float iCover;
+uniform float iDark;
+
+float hash21(float2 pin) {
+    float2 p = fract(pin * float2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float vnoise(float2 p) {
+    float2 i = floor(p);
+    float2 f = fract(p);
+    float a = hash21(i);
+    float b = hash21(i + float2(1.0, 0.0));
+    float c = hash21(i + float2(0.0, 1.0));
+    float d = hash21(i + float2(1.0, 1.0));
+    float2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float fbm(float2 pin) {
+    float2 p = pin;
+    float v = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+        v += amp * vnoise(p);
+        p = p * 2.03 + float2(17.0, 9.0);
+        amp *= 0.5;
+    }
+    return v;
+}
+
+half4 main(float2 fragCoord) {
+    float2 uv = (fragCoord + float2(0.0, iScroll)) / iResolution.y;
+    float2 p = uv * 2.4;
+    float t = iTime * 0.02;
+    float2 w = float2(vnoise(p * 1.3 + float2(t, 0.0)), vnoise(p * 1.3 + float2(3.7, 1.9 - t)));
+    float2 pp = p + 1.4 * w + float2(t * 2.0, 0.0);
+    float n = fbm(pp);
+    float edge0 = 0.75 - 0.5 * iCover;
+    float c = smoothstep(edge0, edge0 + 0.25, n);
+    float s = fbm(pp + float2(0.0, 0.07));
+    float light = clamp(0.55 + (n - s) * 6.0, 0.0, 1.0);
+    float3 col = mix(iTint * (1.0 - iDark), iTint, light);
+    float fade = 1.0 - smoothstep(0.5, 1.0, fragCoord.y / iResolution.y);
+    float a = c * fade * 0.9;
+    return half4(half3(col * a), half(a));
+}
+"""
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private fun createCloudShader(): RuntimeShader? =
+    try {
+        RuntimeShader(CLOUD_AGSL)
+    } catch (e: Throwable) {
+        null
+    }
+
+/** Mây có khối, tự đổi hình, trôi theo thời gian và dịch theo cuộn. Máy < Android 13 dùng mây đơn giản. */
+@Composable
+private fun Clouds(
+    cover: Float,
+    tint: Color,
+    dark: Float,
+    speed: Float,
+    fallbackAlpha: Float,
+    fallbackPeriodMs: Int,
+    scroll: () -> Float,
+) {
+    val shader = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) createCloudShader() else null
+    }
+    if (shader != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        ShaderClouds(shader, cover, tint, dark, speed, scroll)
+    } else {
+        CloudLayer(tint, fallbackAlpha, fallbackPeriodMs)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun ShaderClouds(
+    shader: RuntimeShader,
+    cover: Float,
+    tint: Color,
+    dark: Float,
+    speed: Float,
+    scroll: () -> Float,
+) {
+    val brush = remember(shader) { ShaderBrush(shader) }
+    var time by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        val start = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { now ->
+                time = ((now - start) / 1_000_000_000.0).toFloat() % 20000f
+            }
+        }
+    }
+    Canvas(Modifier.fillMaxSize()) {
+        try {
+            shader.setFloatUniform("iResolution", size.width, size.height)
+            shader.setFloatUniform("iTime", time * speed)
+            shader.setFloatUniform("iScroll", scroll() * 0.35f)
+            shader.setFloatUniform("iTint", tint.red, tint.green, tint.blue)
+            shader.setFloatUniform("iCover", cover)
+            shader.setFloatUniform("iDark", dark)
+            drawRect(brush)
+        } catch (e: Throwable) {
+            // bỏ qua nếu thiết bị không hỗ trợ
+        }
+    }
+}
+
+// ------------------------------------------------------------------ mây đơn giản (dự phòng)
+
 
 private class Blob(val y: Float, val r: Float, val k: Int, val phase: Float, val alpha: Float)
 
