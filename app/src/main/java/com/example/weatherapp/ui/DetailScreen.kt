@@ -1,5 +1,5 @@
 package com.example.weatherapp.ui
-
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.model.CityWeather
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DetailScreen(cities: List<CityWeather>, startIndex: Int, onOpenList: () -> Unit) {
     val pagerState = rememberPagerState(initialPage = startIndex) { cities.size }
