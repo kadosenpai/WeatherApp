@@ -267,7 +267,7 @@ private fun Clouds(
     val shader = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) createCloudShader() else null
     }
-    if (shader != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    if (shader != null && Quality.shaderOk && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         ShaderClouds(shader, cover, tint, dark, speed, scroll)
     } else {
         CloudLayer(tint, fallbackAlpha, fallbackPeriodMs)
@@ -288,8 +288,17 @@ private fun ShaderClouds(
     var time by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
         val start = withFrameNanos { it }
+        var last = start
+        var frames = 0
+        var slow = 0
         while (true) {
             withFrameNanos { now ->
+                val dt = now - last
+                last = now
+                frames++
+                // Máy/giả lập vẽ quá chậm trong 40 khung đầu -> tự tắt shader, dùng mây đơn giản.
+                if (frames <= 40 && dt > 80_000_000L) slow++
+                if (slow >= 4) Quality.shaderOk = false
                 time = ((now - start) / 1_000_000_000.0).toFloat() % 20000f
             }
         }
